@@ -12,32 +12,51 @@ import Alamofire
 import AlamofireImage
 import SwiftUI
 
-class ChampionRowViewModel: ObservableObject {
-    let champion: Champion
-    @Published var image: SwiftUI.Image = .init(systemName: "ellipsis")
+class ChampionDetailViewModel: ObservableObject {
+    let champion: ChampionSummary
     
     var cancellables = Set<AnyCancellable>()
     
-    init(champion: Champion) {
+    init(champion: ChampionSummary) {
+        self.champion = champion
+    }
+}
+
+class ChampionRowViewModel: ObservableObject {
+    let champion: ChampionSummary
+    @Published var image: UIImage?
+    
+    var cancellables = Set<AnyCancellable>()
+    
+    init(champion: ChampionSummary) {
         self.champion = champion
     }
     
-    func fetchImage() -> Future<SwiftUI.Image, Never> {
+    @Published var fetchDone = false
+    
+    func fetchImage() -> Future<UIImage?, Never> {
         return Future { [self] p in
             
             AF.request("https://ddragon.leagueoflegends.com/cdn/10.13.1/img/champion/\(self.champion.name).png").responseImage { response in
+                self.fetchDone = true
+                
                 guard let image = response.value else {
-                    p(.success(.init(systemName: "questionmark.square")))
+                    p(.success(nil))
                     return
                 }
                 
-                p(.success(SwiftUI.Image(uiImage: image)))
+                p(.success(image))
             }
         }
     }
 }
 
-struct Champion: Decodable, Identifiable {
+struct ChampionDetail: Decodable, Identifiable {
+    let id: String
+    let name: String
+}
+
+struct ChampionSummary: Decodable, Identifiable {
     let id: String
     let name: String
     let key: String
@@ -46,11 +65,11 @@ struct Champion: Decodable, Identifiable {
 }
 
 struct League: Decodable {
-    let data: [String: Champion]
+    let data: [String: ChampionSummary]
 }
 
 class LeagueViewModel: ObservableObject {
-    @Published var champions: [Champion] = []
+    @Published var champions: [ChampionSummary] = []
     
     let leagueStore: LeagueStore
     
@@ -73,23 +92,34 @@ class LeagueStore {
     
     var cancellables = Set<AnyCancellable>()
     
-    let fetcher = LeagueFetcher()
-    
     init() {
-        fetcher.fetch()
+        LeagueFetcher.fetchAllChamps()
             .assign(to: \.league, on: self)
             .store(in: &cancellables)
     }
 }
 
 struct LeagueFetcher {
-    let url = URL(string: "https://ddragon.leagueoflegends.com/cdn/10.13.1/data/en_US/champion.json")!
+    static let baseURL = "https://ddragon.leagueoflegends.com/cdn/10.13.1/data/en_US"
     
-    func fetch() -> Future<League, Never> {
+    static func fetchAllChamps() -> Future<League, Never> {
         return Future { p in
-            AF.request(self.url).responseDecodable(of: League.self) { response in
+            AF.request("\(self.baseURL)/champion.json").responseDecodable(of: League.self) { response in
                 guard let league = response.value else {
                     p(.success(League(data: [:])))
+                    return
+                }
+                
+                p(.success(league))
+            }
+        }
+    }
+    
+    static func fetchChamp(_ name: String) -> Future<ChampionDetail, Never> {
+        return Future { p in
+            AF.request("\(self.baseURL)/champion.json").responseDecodable(of: ChampionDetail.self) { response in
+                guard let league = response.value else {
+                    p(.success(ChampionDetail(id: "", name: "")))
                     return
                 }
                 

@@ -12,8 +12,13 @@ struct ChampionListView: View {
     @ObservedObject var viewModel: LeagueViewModel
     
     var body: some View {
-        List(viewModel.champions) { c in
-            ChampionRowView(viewModel: ChampionRowViewModel(champion: c))
+        NavigationView {
+            List(viewModel.champions) { c in
+                NavigationLink(destination: EmptyView()) {
+                    ChampionRowView(viewModel: ChampionRowViewModel(champion: c))
+                }
+            }
+            .navigationBarTitle("Champions")
         }
     }
 }

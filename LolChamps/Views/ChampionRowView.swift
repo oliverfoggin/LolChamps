@@ -15,10 +15,17 @@ struct ChampionRowView: View {
     
     var body: some View {
         HStack {
-            viewModel.image
-                .resizable()
-                .frame(width: 40, height: 40, alignment: .center)
-                .onAppear() { self.loadImage() }
+            if viewModel.image != nil {
+                Image(uiImage: viewModel.image!)
+                    .resizable()
+                    .frame(width: 40, height: 40, alignment: .center)
+            } else if viewModel.fetchDone  {
+                Image(systemName: "questionmark.square")
+                    .font(.system(.title))
+            } else {
+                Image(systemName: "ellipsis")
+                    .onAppear() { self.loadImage()  }
+            }
             Text(viewModel.champion.name)
         }
     }
@@ -32,7 +39,7 @@ struct ChampionRowView: View {
 
 struct ChampionRowView_Previews: PreviewProvider {
     static var previews: some View {
-        ChampionRowView(viewModel: ChampionRowViewModel(champion: Champion(
+        ChampionRowView(viewModel: ChampionRowViewModel(champion: ChampionSummary(
             id: "Aatrox",
             name: "Aatrox",
             key: "",
