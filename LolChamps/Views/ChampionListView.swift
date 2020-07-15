@@ -14,8 +14,8 @@ struct ChampionListView: View {
     var body: some View {
         NavigationView {
             List(viewModel.champions) { c in
-                NavigationLink(destination: EmptyView()) {
-                    ChampionRowView(viewModel: ChampionRowViewModel(champion: c))
+                NavigationLink(destination: ChampionDetailView(viewModel: ChampionDetailViewModel(champion: c))) {
+                    ChampionRowView(viewModel: ChampionRowViewModel(champion: c.summary))
                 }
             }
             .navigationBarTitle("Champions")
